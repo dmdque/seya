@@ -16,6 +16,7 @@ from keras.optimizers import Adam, SGD
 
 from seya.layers.attention import SpatialTransformer, ST2
 
+STN_ON = True
 batch_size = 128
 nb_classes = 10
 nb_epoch = 12
@@ -52,22 +53,25 @@ b[0, 0] = 1
 b[1, 1] = 1
 W = np.zeros((50, 6), dtype='float32')
 weights = [W, b.flatten()]
-# locnet = Sequential()
-# locnet.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
-# locnet.add(Convolution2D(20, 5, 5))
-# locnet.add(MaxPooling2D(pool_size=(2,2)))
-# locnet.add(Convolution2D(20, 5, 5))
+if STN_ON:
+    locnet = Sequential()
+    locnet.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
+    locnet.add(Convolution2D(20, 5, 5))
+    locnet.add(MaxPooling2D(pool_size=(2,2)))
+    locnet.add(Convolution2D(20, 5, 5))
 
-# locnet.add(Flatten())
-# locnet.add(Dense(50))
-# locnet.add(Activation('relu'))
-# locnet.add(Dense(6, weights=weights))
-#locnet.add(Activation('sigmoid'))
+    locnet.add(Flatten())
+    locnet.add(Dense(50))
+    locnet.add(Activation('relu'))
+    locnet.add(Dense(6, weights=weights))
+    locnet.add(Activation('sigmoid'))
 model = Sequential()
 
-# model.add(SpatialTransformer(localization_net=locnet,
-                             # downsample_factor=3, input_shape=input_shape))
-model.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
+if STN_ON:
+     model.add(SpatialTransformer(localization_net=locnet,
+                                  downsample_factor=3, input_shape=input_shape))
+else:
+    model.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
 
 model.add(Convolution2D(32, 3, 3, border_mode='same'))
 model.add(Activation('relu'))
@@ -77,15 +81,19 @@ model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten())
-model.add(Dense(256))
-model.add(Dense(256))
+if STN_ON:
+    model.add(Dense(256))
+else:
+    model.add(Dense(228))
+    model.add(Dense(228))
 model.add(Activation('relu'))
 
 model.add(Dense(nb_classes))
 model.add(Activation('softmax'))
 
+if STN_ON:
+    print('locnet number of params: {}', locnet.count_params())
 print('input shape: {}', input_shape)
-# print('locnet number of params: {}', locnet.count_params())
 print('cnn number of params: {}', model.count_params())
 
 model.compile(loss='categorical_crossentropy', optimizer='adam')
